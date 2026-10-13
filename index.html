@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>幾A幾B 解碼</title>
+<style>
+:root{--bg:#1d2733;--panel:#26323f;--ink:#f1ede4;--mute:#9aa7b4;--brass:#d2a95a;--a:#6fcf97;--b:#f2c14e;--bad:#e8786b;--line:#364352}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#ece8de;--panel:#faf7f0;--ink:#1d2733;--mute:#6b7683;--brass:#9a7425;--a:#2f8f5b;--b:#b8860b;--bad:#c0463a;--line:#d6d0c2}}
+:root[data-theme=light]{--bg:#ece8de;--panel:#faf7f0;--ink:#1d2733;--mute:#6b7683;--brass:#9a7425;--a:#2f8f5b;--b:#b8860b;--bad:#c0463a;--line:#d6d0c2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:20px 14px}
+main{width:100%;max-width:460px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{font-size:1.5rem;margin:0;letter-spacing:.04em}
+.tools button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:6px 10px;cursor:pointer;margin-left:6px;font:inherit;font-size:.85rem}
+.tools button:hover{color:var(--ink)}
+.opts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:.9rem;color:var(--mute)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--mute);padding:6px 12px;cursor:pointer;font:inherit}
+.seg button.on{background:var(--brass);color:#1d2733;font-weight:700}
+label.chk{display:flex;gap:6px;align-items:center;cursor:pointer}
+.stats{display:flex;justify-content:space-between;background:var(--panel);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.9rem;color:var(--mute)}
+.stats b{color:var(--ink);font-size:1.1rem}
+.slots{display:flex;gap:10px;justify-content:center;margin:18px 0 8px}
+.slot{width:56px;height:70px;border-radius:10px;background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums}
+.slot{cursor:pointer}
+.slot.cur{border-color:var(--brass);box-shadow:0 0 0 3px rgba(210,169,90,.25)}
+.slot.hint{color:var(--brass)}
+.msg{min-height:1.4em;text-align:center;font-size:.9rem;color:var(--bad);margin-bottom:8px}
+.msg.ok{color:var(--a)}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+.pad button,.act button{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:12px 0;font-size:1.1rem;cursor:pointer}
+.pad button:hover:not(:disabled){border-color:var(--brass)}
+.pad button:disabled{opacity:.3;cursor:not-allowed}
+.pad button.ex{opacity:.35;text-decoration:line-through;background:transparent;border-style:dashed}
+.pad.exmode button{border-color:var(--bad)}
+.pad.exmode button.ex{opacity:.6}
+.exrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:.85rem;color:var(--mute)}
+.exrow button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.exrow button.on{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:700}
+.act{display:grid;grid-template-columns:1fr 1fr 2fr;gap:8px;margin-bottom:18px}
+.act button{font-size:.95rem}
+.act .go{background:var(--brass);color:#1d2733;font-weight:700;border-color:var(--brass)}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.sub{display:flex;gap:8px;margin-bottom:16px}
+.sub button{flex:1;background:none;border:1px dashed var(--line);color:var(--mute);border-radius:8px;padding:8px;cursor:pointer;font:inherit;font-size:.85rem}
+.sub button:hover:not(:disabled){color:var(--ink);border-color:var(--brass)}
+.sub button:disabled{opacity:.4}
+ol#hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+#hist li{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:10px;padding:8px 14px}
+#hist .n{color:var(--mute);width:1.8em;font-size:.85rem}
+#hist .g{font-size:1.2rem;letter-spacing:.3em;font-variant-numeric:tabular-nums;flex:1}
+#hist .r{font-weight:700}
+#hist .r i{font-style:normal}
+.A{color:var(--a)}.B{color:var(--b)}
+.empty{color:var(--mute);text-align:center;font-size:.9rem;padding:14px}
+.end{text-align:center;background:var(--panel);border:2px solid var(--brass);border-radius:12px;padding:14px;margin-bottom:14px}
+.end h2{margin:0 0 4px;font-size:1.2rem}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:380px;line-height:1.7}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog button{margin-top:8px;background:var(--brass);border:0;border-radius:8px;padding:8px 16px;font:inherit;cursor:pointer;color:#1d2733;font-weight:700}
+@media (prefers-reduced-motion:no-preference){.slot.shake{animation:sh .25s}@keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>幾A幾B 解碼</h1>
+    <div class="tools">
+      <button id="rulesBtn">規則</button>
+      <button id="themeBtn">明/暗</button>
+    </div>
+  </header>
+
+  <div class="opts">
+    <span>位數</span>
+    <div class="seg" id="lenSeg">
+      <button data-n="3">3</button><button data-n="4" class="on">4</button><button data-n="5">5</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="repeat"> 允許數字重複</label>
+  </div>
+
+  <div class="stats">
+    <div>猜測次數<br><b id="cnt">0</b></div>
+    <div>本模式最佳<br><b id="best">—</b></div>
+    <div>勝場<br><b id="wins">0</b></div>
+  </div>
+
+  <div class="slots" id="slots"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="exrow">
+    <span id="exInfo">已排除：無</span>
+    <button id="exBtn">排除模式：關</button>
+  </div>
+  <div class="pad" id="pad"></div>
+  <div class="act">
+    <button id="del">刪除</button>
+    <button id="clr">清空</button>
+    <button id="go" class="go">送出猜測</button>
+  </div>
+
+  <div class="sub">
+    <button id="hintBtn">提示：揭露一位數字</button>
+    <button id="giveBtn">放棄看答案</button>
+  </div>
+
+  <div id="endBox"></div>
+  <ol id="hist"></ol>
+</main>
+
+<dialog id="rules">
+  <h3 style="margin-top:0">遊戲規則</h3>
+  <p>電腦想了一組數字，你要猜出來。每次猜測後會得到回饋：<br>
+  <b class="A">A</b>：數字對、位置也對<br>
+  <b class="B">B</b>：數字對、但位置不對</p>
+  <p style="margin:0 0 4px">假設答案是 <b>1234</b>：</p>
+  <ul style="margin:0 0 8px;padding-left:1.2em">
+    <li>猜 <b>1325</b> → <b><span class="A">1A</span><span class="B">2B</span></b><br><small>1 位置對；3、2 有出現但位置錯；5 沒有。</small></li>
+    <li>猜 <b>4321</b> → <b><span class="A">0A</span><span class="B">4B</span></b><br><small>四個數字都對，但位置全錯。</small></li>
+    <li>猜 <b>5678</b> → <b><span class="A">0A</span><span class="B">0B</span></b><br><small>完全沒有重疊，這四個數字都可以排除。</small></li>
+  </ul>
+  <p style="margin:0 0 4px">用最少次數拿到全部 A 就贏了。使用提示會多算 3 次。</p>
+  <button onclick="document.getElementById('rules').close()">開始玩</button>
+</dialog>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  let len=4, answer=[], guess=[], history=[], over=false, hinted=new Set(), penalty=0, excluded=new Set(), exMode=false, sel=0;
+  const blank=()=>Array(len).fill(null);
+  const store={
+    get(){try{return JSON.parse(localStorage.getItem('ab-game'))||{}}catch(e){return {}}},
+    set(o){try{localStorage.setItem('ab-game',JSON.stringify(o))}catch(e){}}
+  };
+  const key=()=>len+(($('repeat').checked)?'r':'u');
+
+  function newGame(){
+    const pool=[0,1,2,3,4,5,6,7,8,9]; answer=[];
+    if($('repeat').checked){for(let i=0;i<len;i++)answer.push(Math.floor(Math.random()*10));}
+    else{for(let i=0;i<len;i++)answer.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);}
+    guess=blank();sel=0;history=[];over=false;hinted=new Set();penalty=0;excluded=new Set();exMode=false;
+    $('endBox').innerHTML='';setMsg('');render();
+  }
+  function setMsg(t,ok){$('msg').textContent=t;$('msg').className='msg'+(ok?' ok':'')}
+  function judge(g){
+    let a=0,b=0;const ar=[],gr=[];
+    g.forEach((d,i)=>{if(d===answer[i])a++;else{ar.push(answer[i]);gr.push(d)}});
+    gr.forEach(d=>{const k=ar.indexOf(d);if(k>-1){b++;ar.splice(k,1)}});
+    return {a,b};
+  }
+  function render(){
+    const s=$('slots');s.innerHTML='';
+    for(let i=0;i<len;i++){
+      const d=document.createElement('div');
+      const shown=hinted.has(i)&&guess[i]===null;
+      d.className='slot'+(i===sel&&!over?' cur':'')+(shown?' hint':'');
+      d.textContent=guess[i]!==null?guess[i]:(shown?answer[i]:'');
+      d.onclick=()=>{if(!over){sel=i;render()}};
+      s.appendChild(d);
+    }
+    const pad=$('pad');pad.innerHTML='';
+    for(let n=0;n<10;n++){
+      const b=document.createElement('button');b.textContent=n;
+      const isEx=excluded.has(n);
+      if(isEx)b.classList.add('ex');
+      b.disabled=over||(exMode?false:(isEx||(!$('repeat').checked&&guess.some((x,i)=>x===n&&i!==sel))));
+      b.onclick=()=>exMode?toggleEx(n):press(n);
+      b.oncontextmenu=e=>{e.preventDefault();if(!over)toggleEx(n)};
+      pad.appendChild(b);
+    }
+    pad.classList.toggle('exmode',exMode);
+    $('exBtn').textContent='排除模式：'+(exMode?'開':'關');
+    $('exBtn').classList.toggle('on',exMode);
+    $('exInfo').textContent='已排除：'+(excluded.size?[...excluded].sort().join(' '):'無');
+    const st=store.get();
+    $('cnt').textContent=history.length+penalty;
+    $('best').textContent=(st.best&&st.best[key()])||'—';
+    $('wins').textContent=st.wins||0;
+    $('hintBtn').disabled=over||hinted.size>=len-1;
+    $('giveBtn').disabled=over;
+    $('go').disabled=over;
+    const h=$('hist');h.innerHTML='';
+    if(!history.length){h.innerHTML='<li class="empty" style="justify-content:center">還沒有紀錄，輸入 '+len+' 個數字開始猜（可點格子修改任一位）</li>';}
+    history.slice().reverse().forEach((r,i)=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span class="n">#'+(history.length-i)+'</span><span class="g">'+r.g.join('')+'</span><span class="r"><i class="A">'+r.a+'A</i> <i class="B">'+r.b+'B</i></span>';
+      h.appendChild(li);
+    });
+  }
+  function toggleEx(n){
+    if(excluded.has(n))excluded.delete(n);
+    else{excluded.add(n);guess=guess.map(x=>x===n?null:x);}
+    render();
+  }
+  function press(n){
+    if(over)return;
+    guess[sel]=n;
+    for(let k=1;k<=len;k++){const j=(sel+k)%len;if(guess[j]===null){sel=j;break}}
+    setMsg('');render();
+  }
+  function delDigit(){
+    if(over)return;
+    if(guess[sel]!==null)guess[sel]=null;
+    else{for(let i=sel-1;i>=0;i--){if(guess[i]!==null){guess[i]=null;sel=i;break}}}
+    setMsg('');render();
+  }
+  function submit(){
+    if(over)return;
+    const left=guess.filter(x=>x===null).length;
+    if(left){setMsg('還差 '+left+' 個數字');shake();return}
+    const r=judge(guess);history.push({g:guess.slice(),a:r.a,b:r.b});
+    const used=history.length+penalty;
+    guess=blank();sel=0;
+    if(r.a===len){
+      over=true;const st=store.get();
+      st.wins=(st.wins||0)+1;st.best=st.best||{};
+      const isBest=!st.best[key()]||used<st.best[key()];
+      if(isBest)st.best[key()]=used;store.set(st);
+      $('endBox').innerHTML='<div class="end"><h2>解開了！答案 '+answer.join('')+'</h2><div>共 '+used+' 次'+(isBest?'，刷新最佳紀錄':'')+'</div></div>';
+      setMsg('');
+    }
+    render();
+  }
+  function shake(){const s=$('slots');s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');}
+  $('del').onclick=delDigit;
+  $('clr').onclick=()=>{if(!over){guess=blank();sel=0;setMsg('');render()}};
+  $('go').onclick=submit;
+  $('exBtn').onclick=()=>{if(!over){exMode=!exMode;render()}};
+  $('hintBtn').onclick=()=>{
+    if(over)return;
+    const free=[];for(let i=0;i<len;i++)if(!hinted.has(i))free.push(i);
+    const i=free[Math.floor(Math.random()*free.length)];
+    hinted.add(i);penalty+=3;
+    setMsg('第 '+(i+1)+' 位是 '+answer[i]+'（次數 +3）',true);render();
+  };
+  $('giveBtn').onclick=()=>{
+    if(over)return;
+    if(!confirm('確定要放棄並查看答案嗎？'))return;
+    over=true;$('endBox').innerHTML='<div class="end"><h2>答案是 '+answer.join('')+'</h2><div>再接再厲，按下方開始新局</div></div>';render();
+  };
+  $('lenSeg').onclick=e=>{
+    const n=e.target.dataset&&e.target.dataset.n;if(!n)return;
+    len=+n;[...$('lenSeg').children].forEach(b=>b.classList.toggle('on',b.dataset.n===n));newGame();
+  };
+  $('repeat').onchange=newGame;
+  $('rulesBtn').onclick=()=>$('rules').showModal();
+  $('themeBtn').onclick=()=>{
+    const r=document.documentElement;
+    const dark=r.dataset.theme?r.dataset.theme==='dark':!matchMedia('(prefers-color-scheme:light)').matches;
+    r.dataset.theme=dark?'light':'dark';
+  };
+  document.addEventListener('keydown',e=>{
+    if($('rules').open)return;
+    if(/^[0-9]$/.test(e.key)){
+      const n=+e.key;
+      if(excluded.has(n)){setMsg('數字 '+n+' 已被你排除');shake();return}
+      if(!$('repeat').checked&&guess.some((x,i)=>x===n&&i!==sel)){setMsg('數字不可重複');shake();return}
+      press(n);
+    }else if(e.key==='Backspace'){delDigit()}
+    else if(e.key==='ArrowLeft'&&!over){sel=(sel+len-1)%len;render()}
+    else if(e.key==='ArrowRight'&&!over){sel=(sel+1)%len;render()}
+    else if(e.key==='Enter'){submit()}
+  });
+  $('repeat').addEventListener('change',()=>{});
+  newGame();
+  // 新局按鈕：結束後顯示
+  const obs=new MutationObserver(()=>{
+    const box=$('endBox');
+    if(box.firstChild&&!box.querySelector('button')){
+      const b=document.createElement('button');b.textContent='再來一局';
+      b.style.cssText='margin-top:10px;background:var(--brass);border:0;border-radius:8px;padding:8px 18px;font:inherit;font-weight:700;cursor:pointer;color:#1d2733';
+      b.onclick=newGame;box.querySelector('.end').appendChild(b);
+    }
+  });
+  obs.observe($('endBox'),{childList:true});
+})();
+</script>
+</body>
+</html>
